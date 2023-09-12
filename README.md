@@ -1,3 +1,5 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/yhzs8/grpcl4tunnel)](https://goreportcard.com/report/github.com/yhzs8/grpcl4tunnel)
+
 # A Go network tunnel implementation using gRPC encapsulation
 
 ## Protocols supported:
