@@ -2,7 +2,7 @@ package protocols
 
 import (
 	"github.com/ishidawataru/sctp"
-	tunnelpb "github.com/yhzs8/grpcl4tunnel/api/tunnel"
+	pbtunnel "github.com/yhzs8/grpcl4tunnel/api/tunnel"
 	"log"
 	"net"
 )
@@ -11,7 +11,7 @@ type SctpProtocol struct {
 }
 
 func (sp SctpProtocol) SetupIncomingSocket(localHost string, localPort int32) (*ProtocolListener, error) {
-	listener, err := sctp.ListenSCTP(tunnelpb.Protocol_sctp.String(), &sctp.SCTPAddr{IPAddrs: []net.IPAddr{{IP: net.ParseIP(localHost)}}, Port: int(localPort)})
+	listener, err := sctp.ListenSCTP(pbtunnel.Protocol_sctp.String(), &sctp.SCTPAddr{IPAddrs: []net.IPAddr{{IP: net.ParseIP(localHost)}}, Port: int(localPort)})
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +31,7 @@ func (sp SctpProtocol) SetupOutgoingSocket(remoteHost string, remotePort int32) 
 	if err != nil {
 		return nil, err
 	}
-	conn, err := sctp.DialSCTP(tunnelpb.Protocol_sctp.String(), nil, &sctp.SCTPAddr{IPAddrs: []net.IPAddr{*addr}, Port: int(remotePort)})
+	conn, err := sctp.DialSCTP(pbtunnel.Protocol_sctp.String(), nil, &sctp.SCTPAddr{IPAddrs: []net.IPAddr{*addr}, Port: int(remotePort)})
 	if err != nil {
 		return nil, err
 	}

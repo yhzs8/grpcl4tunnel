@@ -48,7 +48,7 @@ The `tunnel` object defines properties of a tunnel instance, it contains the fol
 
 Sample tunnel objects (both server-initiated and client-initiated) are defined in `server.go` example and the gRPC client do retrieve the client-initiated tunnel objects through a gRPC unary call before starting the tunnel endpoints:
 ```go
-tunnelGetResponseList, err := client.GetClientInitiatedTunnels(context.Background(), &tunnelpb.TunnelGetPayload{ClientId: *clientId})
+tunnelGetResponseList, err := client.GetClientInitiatedTunnels(context.Background(), &pbtunnel.TunnelGetPayload{ClientId: *clientId})
 ```
 
 ## How to run the example:

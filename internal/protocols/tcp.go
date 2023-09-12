@@ -2,7 +2,7 @@ package protocols
 
 import (
 	"fmt"
-	tunnelpb "github.com/yhzs8/grpcl4tunnel/api/tunnel"
+	pbtunnel "github.com/yhzs8/grpcl4tunnel/api/tunnel"
 	"log"
 	"net"
 )
@@ -11,7 +11,7 @@ type TcpProtocol struct {
 }
 
 func (tp TcpProtocol) SetupIncomingSocket(localHost string, localPort int32) (*ProtocolListener, error) {
-	listener, err := net.Listen(tunnelpb.Protocol_tcp.String(), fmt.Sprintf("%s:%d", localHost, localPort))
+	listener, err := net.Listen(pbtunnel.Protocol_tcp.String(), fmt.Sprintf("%s:%d", localHost, localPort))
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (tp TcpProtocol) ListenIncomingBytes(listener *ProtocolListener, localHost 
 }
 
 func (tp TcpProtocol) SetupOutgoingSocket(remoteHost string, remotePort int32) (*ProtocolConn, error) {
-	conn, err := net.Dial(tunnelpb.Protocol_tcp.String(), fmt.Sprintf("%s:%d", remoteHost, remotePort))
+	conn, err := net.Dial(pbtunnel.Protocol_tcp.String(), fmt.Sprintf("%s:%d", remoteHost, remotePort))
 	if err != nil {
 		return nil, err
 	}

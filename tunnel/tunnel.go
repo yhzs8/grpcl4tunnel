@@ -2,7 +2,7 @@ package tunnel
 
 import (
 	"fmt"
-	tunnelpb "github.com/yhzs8/grpcl4tunnel/api/tunnel"
+	pbtunnel "github.com/yhzs8/grpcl4tunnel/api/tunnel"
 	"github.com/yhzs8/grpcl4tunnel/internal/protocols"
 	"io"
 	"log"
@@ -23,7 +23,7 @@ func lookupConn(key string) *protocols.ProtocolConn {
 	return nil
 }
 
-func constructKey(clientId string, tunnel *tunnelpb.Tunnel) string {
+func constructKey(clientId string, tunnel *pbtunnel.Tunnel) string {
 	//key format: <client_id>_<si/ci>_<protocol>_<localHost>_<localPort>_<remoteHost>_<remotePort>
 	var serverInitiatedOrClientInitiated string
 	if tunnel.IsServerInitiated {
@@ -34,7 +34,7 @@ func constructKey(clientId string, tunnel *tunnelpb.Tunnel) string {
 	return fmt.Sprintf("%s_%s_%s_%s_%d_%s_%d", clientId, serverInitiatedOrClientInitiated, tunnel.Protocol.String(), tunnel.LocalHost, tunnel.LocalPort, tunnel.RemoteHost, tunnel.RemotePort)
 }
 
-func HandleTunnel(clientId string, tunnels []*tunnelpb.Tunnel, getProtocolImplInput protocols.GetProtocolImplInterface, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient) error {
+func HandleTunnel(clientId string, tunnels []*pbtunnel.Tunnel, getProtocolImplInput protocols.GetProtocolImplInterface, serverStream pbtunnel.TunnelService_TunnelChatServer, clientStream pbtunnel.TunnelService_TunnelChatClient) error {
 	getProtocolImpl = getProtocolImplInput
 
 	streamErrorChan := make(chan error)
@@ -82,7 +82,7 @@ func HandleTunnel(clientId string, tunnels []*tunnelpb.Tunnel, getProtocolImplIn
 	}
 }
 
-func listeningTunnelSession(clientId string, tunnel *tunnelpb.Tunnel, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, streamErrorChan chan error) error {
+func listeningTunnelSession(clientId string, tunnel *pbtunnel.Tunnel, serverStream pbtunnel.TunnelService_TunnelChatServer, clientStream pbtunnel.TunnelService_TunnelChatClient, streamErrorChan chan error) error {
 	protocolImpl := getProtocolImpl.GetProtocolImpl(tunnel.Protocol)
 	listener, err := protocolImpl.SetupIncomingSocket(tunnel.LocalHost, tunnel.LocalPort)
 	if err != nil {
@@ -97,7 +97,7 @@ func listeningTunnelSession(clientId string, tunnel *tunnelpb.Tunnel, serverStre
 	}
 }
 
-func listeningTunnelSessionLoop(clientId string, tunnel *tunnelpb.Tunnel, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, streamErrorChan chan error, protocolImpl protocols.ProtocolInterface, listener *protocols.ProtocolListener) (error, bool) {
+func listeningTunnelSessionLoop(clientId string, tunnel *pbtunnel.Tunnel, serverStream pbtunnel.TunnelService_TunnelChatServer, clientStream pbtunnel.TunnelService_TunnelChatClient, streamErrorChan chan error, protocolImpl protocols.ProtocolInterface, listener *protocols.ProtocolListener) (error, bool) {
 	socketErrorChan := make(chan error)
 	socketToStreamChan := make(chan []byte)
 
@@ -158,7 +158,7 @@ func listeningTunnelSessionLoop(clientId string, tunnel *tunnelpb.Tunnel, server
 	}
 }
 
-func dialingTunnelSession(key string, tunnel *tunnelpb.Tunnel, protocolImpl protocols.ProtocolInterface, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, conn *protocols.ProtocolConn, streamErrorChan chan error) error {
+func dialingTunnelSession(key string, tunnel *pbtunnel.Tunnel, protocolImpl protocols.ProtocolInterface, serverStream pbtunnel.TunnelService_TunnelChatServer, clientStream pbtunnel.TunnelService_TunnelChatClient, conn *protocols.ProtocolConn, streamErrorChan chan error) error {
 	socketErrorChan := make(chan error)
 	socketToStreamChan := make(chan []byte)
 
@@ -211,7 +211,7 @@ func dialingTunnelSession(key string, tunnel *tunnelpb.Tunnel, protocolImpl prot
 	}
 }
 
-func recvStream(serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient) (*tunnelpb.TunnelMessage, error) {
+func recvStream(serverStream pbtunnel.TunnelService_TunnelChatServer, clientStream pbtunnel.TunnelService_TunnelChatClient) (*pbtunnel.TunnelMessage, error) {
 	if serverStream != nil {
 		return serverStream.Recv()
 	} else {
@@ -219,19 +219,19 @@ func recvStream(serverStream tunnelpb.TunnelService_TunnelChatServer, clientStre
 	}
 }
 
-func sendStream(serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, tunnel *tunnelpb.Tunnel, closed bool, toBeSentToStream []byte) error {
+func sendStream(serverStream pbtunnel.TunnelService_TunnelChatServer, clientStream pbtunnel.TunnelService_TunnelChatClient, tunnel *pbtunnel.Tunnel, closed bool, toBeSentToStream []byte) error {
 	var err error
 	if serverStream != nil {
 		if closed {
-			err = serverStream.Send(&tunnelpb.TunnelMessage{Tunnel: tunnel, Closed: true})
+			err = serverStream.Send(&pbtunnel.TunnelMessage{Tunnel: tunnel, Closed: true})
 		} else {
-			err = serverStream.Send(&tunnelpb.TunnelMessage{Tunnel: tunnel, Content: toBeSentToStream, Closed: false})
+			err = serverStream.Send(&pbtunnel.TunnelMessage{Tunnel: tunnel, Content: toBeSentToStream, Closed: false})
 		}
 	} else {
 		if closed {
-			err = clientStream.Send(&tunnelpb.TunnelMessage{Tunnel: tunnel, Closed: true})
+			err = clientStream.Send(&pbtunnel.TunnelMessage{Tunnel: tunnel, Closed: true})
 		} else {
-			err = clientStream.Send(&tunnelpb.TunnelMessage{Tunnel: tunnel, Content: toBeSentToStream, Closed: false})
+			err = clientStream.Send(&pbtunnel.TunnelMessage{Tunnel: tunnel, Content: toBeSentToStream, Closed: false})
 		}
 	}
 	if err != nil {

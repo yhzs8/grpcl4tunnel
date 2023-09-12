@@ -2,7 +2,7 @@ package protocols
 
 import (
 	"github.com/ishidawataru/sctp"
-	tunnelpb "github.com/yhzs8/grpcl4tunnel/api/tunnel"
+	pbtunnel "github.com/yhzs8/grpcl4tunnel/api/tunnel"
 	"net"
 )
 
@@ -33,19 +33,19 @@ type ProtocolInterface interface {
 const BufferSize = 1500
 
 type GetProtocolImplInterface interface {
-	GetProtocolImpl(protocol tunnelpb.Protocol) ProtocolInterface
+	GetProtocolImpl(protocol pbtunnel.Protocol) ProtocolInterface
 }
 
 type ProductionProtocolImpl struct {
 }
 
-func (ProductionProtocolImpl) GetProtocolImpl(protocol tunnelpb.Protocol) ProtocolInterface {
+func (ProductionProtocolImpl) GetProtocolImpl(protocol pbtunnel.Protocol) ProtocolInterface {
 	switch protocol {
-	case tunnelpb.Protocol_tcp:
+	case pbtunnel.Protocol_tcp:
 		return TcpProtocol{}
-	case tunnelpb.Protocol_udp:
+	case pbtunnel.Protocol_udp:
 		return UdpProtocol{}
-	case tunnelpb.Protocol_sctp:
+	case pbtunnel.Protocol_sctp:
 		return SctpProtocol{}
 	}
 	return TcpProtocol{}

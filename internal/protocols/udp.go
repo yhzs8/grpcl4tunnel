@@ -2,7 +2,7 @@ package protocols
 
 import (
 	"fmt"
-	tunnelpb "github.com/yhzs8/grpcl4tunnel/api/tunnel"
+	pbtunnel "github.com/yhzs8/grpcl4tunnel/api/tunnel"
 	"log"
 	"net"
 )
@@ -15,7 +15,7 @@ func (up UdpProtocol) SetupIncomingSocket(localHost string, localPort int32) (*P
 }
 
 func (up UdpProtocol) ListenIncomingBytes(listener *ProtocolListener, localHost string, localPort int32) (*ProtocolConn, error) {
-	conn, err := net.ListenPacket(tunnelpb.Protocol_udp.String(), fmt.Sprintf("%s:%d", localHost, localPort))
+	conn, err := net.ListenPacket(pbtunnel.Protocol_udp.String(), fmt.Sprintf("%s:%d", localHost, localPort))
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func (up UdpProtocol) ListenIncomingBytes(listener *ProtocolListener, localHost 
 }
 
 func (up UdpProtocol) SetupOutgoingSocket(remoteHost string, remotePort int32) (*ProtocolConn, error) {
-	conn, err := net.DialUDP(tunnelpb.Protocol_udp.String(), nil, &net.UDPAddr{IP: net.ParseIP(remoteHost), Port: int(remotePort)})
+	conn, err := net.DialUDP(pbtunnel.Protocol_udp.String(), nil, &net.UDPAddr{IP: net.ParseIP(remoteHost), Port: int(remotePort)})
 	if err != nil {
 		return nil, err
 	}
