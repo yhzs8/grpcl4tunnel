@@ -64,3 +64,30 @@ go run server/server.go
 cd examples
 go run client/client.go --addr=<server IP>:50051
 ```
+## Embed the tunnel implementation in your own gRPC server/client:
+### server side:
+Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (must be server initiated tunnels), `protocols.ProductionProtocolImpl{}`, `isServer=true`, `serverStream` and `clientStream=nil`
+```go
+func (s *tunnelServer) TunnelChat(stream pbtunnel.TunnelService_TunnelChatServer) error {
+    clientId, err := parseClientId(stream.Context())
+    if err != nil {
+        return err
+    }
+    tunnels := getServerInitiatedTunnels(clientId)
+    return tunnel.HandleTunnel(clientId, tunnels, protocols.ProductionProtocolImpl{}, true, stream, nil)
+}
+```
+### client side:
+Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (retreived from `GetClientInitiatedTunnels()`), `protocols.ProductionProtocolImpl{}`, `isServer=false`, `serverStream=nil` and `clientStream`
+```go
+func runTunnelChat(client pbtunnel.TunnelServiceClient, tunnelList []*pbtunnel.Tunnel) error {
+	stream, err := client.TunnelChat(metadata.NewOutgoingContext(
+		context.WithoutCancel(context.Background()),
+		metadata.MD{"client_id": []string{*clientId}},
+	))
+	if err != nil {
+		return err
+	}
+	return tunnel.HandleTunnel(*clientId, tunnelList, protocols.ProductionProtocolImpl{}, false, nil, stream)
+}
+```
