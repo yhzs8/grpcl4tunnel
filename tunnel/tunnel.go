@@ -13,6 +13,8 @@ var connMap sync.Map = sync.Map{}
 
 var getProtocolImpl protocols.GetProtocolImplInterface
 
+const sendClosedMessageToGrpcStream = "Sent closed message to gRPC stream"
+
 func lookupConn(key string) *protocols.ProtocolConn {
 	conn, _ := connMap.Load(key)
 	if conn != nil {
@@ -32,23 +34,15 @@ func constructKey(clientId string, tunnel *tunnelpb.Tunnel) string {
 	return fmt.Sprintf("%s_%s_%s_%s_%d_%s_%d", clientId, serverInitiatedOrClientInitiated, tunnel.Protocol.String(), tunnel.LocalHost, tunnel.LocalPort, tunnel.RemoteHost, tunnel.RemotePort)
 }
 
-func HandleTunnel(clientId string, tunnels []*tunnelpb.Tunnel, getProtocolImplInput protocols.GetProtocolImplInterface, isServer bool, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient) error {
+func HandleTunnel(clientId string, tunnels []*tunnelpb.Tunnel, getProtocolImplInput protocols.GetProtocolImplInterface, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient) error {
 	getProtocolImpl = getProtocolImplInput
 
 	streamErrorChan := make(chan error)
 	for _, tunnel := range tunnels {
-		go listeningTunnelSession(clientId, tunnel, isServer, serverStream, clientStream, streamErrorChan)
+		go listeningTunnelSession(clientId, tunnel, serverStream, clientStream, streamErrorChan)
 	}
-	var (
-		received *tunnelpb.TunnelMessage
-		err      error
-	)
 	for {
-		if isServer {
-			received, err = serverStream.Recv()
-		} else {
-			received, err = clientStream.Recv()
-		}
+		received, err := recvStream(serverStream, clientStream)
 		if err != nil {
 			log.Printf("Permanent error when stream.Recv(): %v", err.Error())
 			close(streamErrorChan)
@@ -58,20 +52,20 @@ func HandleTunnel(clientId string, tunnels []*tunnelpb.Tunnel, getProtocolImplIn
 		key := constructKey(clientId, received.Tunnel)
 		protocolImpl := getProtocolImpl.GetProtocolImpl(received.Tunnel.Protocol)
 		conn := lookupConn(key)
-		//isServerInitiated = FALSE && isServer = TRUE ----> true
-		//isServerInitiated = FALSE && isServer = FALSE ---> false
-		//isServerInitiated = TRUE  && isServer = TRUE .---> false
-		//isServerInitiated = TRUE  && isServer = FALSE ---> true
-		if conn == nil && received.Tunnel.IsServerInitiated != isServer {
+		//isServerInitiated = FALSE && (serverStream != nil) = TRUE ----> true
+		//isServerInitiated = FALSE && (serverStream != nil) = FALSE ---> false
+		//isServerInitiated = TRUE  && (serverStream != nil) = TRUE .---> false
+		//isServerInitiated = TRUE  && (serverStream != nil) = FALSE ---> true
+		if conn == nil && received.Tunnel.IsServerInitiated != (serverStream != nil) {
 			conn, err = protocolImpl.SetupOutgoingSocket(received.Tunnel.RemoteHost, received.Tunnel.RemotePort)
 			if err != nil {
 				log.Printf("Error received when protocolImpl.SetupOutgoingSocket(): %v", err.Error())
-				sendStream(isServer, serverStream, clientStream, received.Tunnel, true, nil)
-				log.Println("Sent closed message to gRPC stream")
+				sendStream(serverStream, clientStream, received.Tunnel, true, nil)
+				log.Println(sendClosedMessageToGrpcStream)
 				continue
 			}
 			connMap.Store(key, conn)
-			go dialingTunnelSession(key, received.Tunnel, protocolImpl, isServer, serverStream, clientStream, conn, streamErrorChan)
+			go dialingTunnelSession(key, received.Tunnel, protocolImpl, serverStream, clientStream, conn, streamErrorChan)
 		}
 		if received.Closed {
 			select {
@@ -88,7 +82,7 @@ func HandleTunnel(clientId string, tunnels []*tunnelpb.Tunnel, getProtocolImplIn
 	}
 }
 
-func listeningTunnelSession(clientId string, tunnel *tunnelpb.Tunnel, isServer bool, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, streamErrorChan chan error) error {
+func listeningTunnelSession(clientId string, tunnel *tunnelpb.Tunnel, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, streamErrorChan chan error) error {
 	protocolImpl := getProtocolImpl.GetProtocolImpl(tunnel.Protocol)
 	listener, err := protocolImpl.SetupIncomingSocket(tunnel.LocalHost, tunnel.LocalPort)
 	if err != nil {
@@ -96,14 +90,14 @@ func listeningTunnelSession(clientId string, tunnel *tunnelpb.Tunnel, isServer b
 	}
 	defer protocolImpl.ShutdownListener(listener)
 	for {
-		err, done := listeningTunnelSessionLoop(clientId, tunnel, isServer, serverStream, clientStream, streamErrorChan, protocolImpl, listener)
+		err, done := listeningTunnelSessionLoop(clientId, tunnel, serverStream, clientStream, streamErrorChan, protocolImpl, listener)
 		if done {
 			return err
 		}
 	}
 }
 
-func listeningTunnelSessionLoop(clientId string, tunnel *tunnelpb.Tunnel, isServer bool, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, streamErrorChan chan error, protocolImpl protocols.ProtocolInterface, listener *protocols.ProtocolListener) (error, bool) {
+func listeningTunnelSessionLoop(clientId string, tunnel *tunnelpb.Tunnel, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, streamErrorChan chan error, protocolImpl protocols.ProtocolInterface, listener *protocols.ProtocolListener) (error, bool) {
 	socketErrorChan := make(chan error)
 	socketToStreamChan := make(chan []byte)
 
@@ -151,11 +145,11 @@ func listeningTunnelSessionLoop(clientId string, tunnel *tunnelpb.Tunnel, isServ
 			}
 			return err, true
 		case err := <-socketErrorChan:
-			sendStream(isServer, serverStream, clientStream, tunnel, true, nil)
-			log.Printf("Sent closed message to gRPC stream")
+			sendStream(serverStream, clientStream, tunnel, true, nil)
+			log.Printf(sendClosedMessageToGrpcStream)
 			return err, false
 		case toBeSentToStream := <-socketToStreamChan:
-			err := sendStream(isServer, serverStream, clientStream, tunnel, false, toBeSentToStream)
+			err := sendStream(serverStream, clientStream, tunnel, false, toBeSentToStream)
 			if err != nil {
 				return err, true
 			}
@@ -164,7 +158,7 @@ func listeningTunnelSessionLoop(clientId string, tunnel *tunnelpb.Tunnel, isServ
 	}
 }
 
-func dialingTunnelSession(key string, tunnel *tunnelpb.Tunnel, protocolImpl protocols.ProtocolInterface, isServer bool, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, conn *protocols.ProtocolConn, streamErrorChan chan error) error {
+func dialingTunnelSession(key string, tunnel *tunnelpb.Tunnel, protocolImpl protocols.ProtocolInterface, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, conn *protocols.ProtocolConn, streamErrorChan chan error) error {
 	socketErrorChan := make(chan error)
 	socketToStreamChan := make(chan []byte)
 
@@ -204,11 +198,11 @@ func dialingTunnelSession(key string, tunnel *tunnelpb.Tunnel, protocolImpl prot
 			log.Println("Received closed message from gRPC stream")
 			return err
 		case err := <-socketErrorChan:
-			sendStream(isServer, serverStream, clientStream, tunnel, true, nil)
-			log.Println("Sent closed message to gRPC stream")
+			sendStream(serverStream, clientStream, tunnel, true, nil)
+			log.Println(sendClosedMessageToGrpcStream)
 			return err
 		case toBeSentToStream := <-socketToStreamChan:
-			err := sendStream(isServer, serverStream, clientStream, tunnel, false, toBeSentToStream)
+			err := sendStream(serverStream, clientStream, tunnel, false, toBeSentToStream)
 			if err != nil {
 				return err
 			}
@@ -217,9 +211,17 @@ func dialingTunnelSession(key string, tunnel *tunnelpb.Tunnel, protocolImpl prot
 	}
 }
 
-func sendStream(isServer bool, serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, tunnel *tunnelpb.Tunnel, closed bool, toBeSentToStream []byte) error {
+func recvStream(serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient) (*tunnelpb.TunnelMessage, error) {
+	if serverStream != nil {
+		return serverStream.Recv()
+	} else {
+		return clientStream.Recv()
+	}
+}
+
+func sendStream(serverStream tunnelpb.TunnelService_TunnelChatServer, clientStream tunnelpb.TunnelService_TunnelChatClient, tunnel *tunnelpb.Tunnel, closed bool, toBeSentToStream []byte) error {
 	var err error
-	if isServer {
+	if serverStream != nil {
 		if closed {
 			err = serverStream.Send(&tunnelpb.TunnelMessage{Tunnel: tunnel, Closed: true})
 		} else {

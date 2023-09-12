@@ -125,7 +125,7 @@ func TestServerInitiatedTunnelAsServer(t *testing.T) {
 	protocolsImplMock.EXPECT().ShutdownSocket(&protocolConn).AnyTimes().Return(nil)
 	protocolsImplMock.EXPECT().ShutdownListener(&protocolListener).AnyTimes().Return(nil)
 
-	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{&serverInitiatedTunnel}, getProtocolImplMock, true, tunnelServerMock, nil)
+	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{&serverInitiatedTunnel}, getProtocolImplMock, tunnelServerMock, nil)
 }
 
 func TestClientInitiatedTunnelAsServer(t *testing.T) {
@@ -146,7 +146,7 @@ func TestClientInitiatedTunnelAsServer(t *testing.T) {
 	protocolsImplMock.EXPECT().ShutdownSocket(&protocolConn).AnyTimes().Return(nil)
 	protocolsImplMock.EXPECT().ShutdownListener(&protocolListener).AnyTimes().Return(nil)
 
-	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{}, getProtocolImplMock, true, tunnelServerMock, nil)
+	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{}, getProtocolImplMock, tunnelServerMock, nil)
 }
 
 func TestServerInitiatedTunnelAsClient(t *testing.T) {
@@ -167,7 +167,7 @@ func TestServerInitiatedTunnelAsClient(t *testing.T) {
 	protocolsImplMock.EXPECT().ShutdownSocket(&protocolConn).AnyTimes().Return(nil)
 	protocolsImplMock.EXPECT().ShutdownListener(&protocolListener).AnyTimes().Return(nil)
 
-	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{}, getProtocolImplMock, false, nil, tunnelClientMock)
+	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{}, getProtocolImplMock, nil, tunnelClientMock)
 }
 
 func TestClientInitiatedTunnelAsClient(t *testing.T) {
@@ -191,5 +191,5 @@ func TestClientInitiatedTunnelAsClient(t *testing.T) {
 	protocolsImplMock.EXPECT().ShutdownSocket(&protocolConn).AnyTimes().Return(nil)
 	protocolsImplMock.EXPECT().ShutdownListener(&protocolListener).AnyTimes().Return(nil)
 
-	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{&clientInitiatedTunnel}, getProtocolImplMock, false, nil, tunnelClientMock)
+	tunnel.HandleTunnel(clientId, []*tunnelpb.Tunnel{&clientInitiatedTunnel}, getProtocolImplMock, nil, tunnelClientMock)
 }
