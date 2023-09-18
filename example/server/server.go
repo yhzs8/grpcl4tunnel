@@ -128,7 +128,7 @@ func (s *tunnelServer) TunnelChat(stream pbtunnel.TunnelService_TunnelChatServer
 		return err
 	}
 	tunnels := getServerInitiatedTunnels(clientId)
-	return tunnel.HandleTunnel(clientId, tunnels, protocols.ProductionProtocolImpl{}, true, stream, nil)
+	return tunnel.HandleTunnel(clientId, tunnels, protocols.ProductionProtocolImpl{}, stream, nil)
 }
 
 func main() {

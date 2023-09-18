@@ -68,18 +68,34 @@ go run client/client.go --addr=<server IP>:50051
 ### server side:
 Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (must be server initiated tunnels), `protocols.ProductionProtocolImpl{}`, `isServer=true`, `serverStream` and `clientStream=nil`
 ```go
+import (
+...
+pbtunnel "github.com/yhzs8/grpcl4tunnel/api/tunnel"
+"github.com/yhzs8/grpcl4tunnel/internal/protocols"
+"github.com/yhzs8/grpcl4tunnel/tunnel"
+...
+)
+
 func (s *tunnelServer) TunnelChat(stream pbtunnel.TunnelService_TunnelChatServer) error {
     clientId, err := parseClientId(stream.Context())
     if err != nil {
         return err
     }
     tunnels := getServerInitiatedTunnels(clientId)
-    return tunnel.HandleTunnel(clientId, tunnels, protocols.ProductionProtocolImpl{}, true, stream, nil)
+    return tunnel.HandleTunnel(clientId, tunnels, protocols.ProductionProtocolImpl{}, stream, nil)
 }
 ```
 ### client side:
 Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (retreived from `GetClientInitiatedTunnels()`), `protocols.ProductionProtocolImpl{}`, `isServer=false`, `serverStream=nil` and `clientStream`
 ```go
+import (
+...
+pbtunnel "github.com/yhzs8/grpcl4tunnel/api/tunnel"
+"github.com/yhzs8/grpcl4tunnel/internal/protocols"
+"github.com/yhzs8/grpcl4tunnel/tunnel"
+...
+)
+
 func runTunnelChat(client pbtunnel.TunnelServiceClient, tunnelList []*pbtunnel.Tunnel) error {
 	stream, err := client.TunnelChat(metadata.NewOutgoingContext(
 		context.WithoutCancel(context.Background()),
@@ -88,6 +104,6 @@ func runTunnelChat(client pbtunnel.TunnelServiceClient, tunnelList []*pbtunnel.T
 	if err != nil {
 		return err
 	}
-	return tunnel.HandleTunnel(*clientId, tunnelList, protocols.ProductionProtocolImpl{}, false, nil, stream)
+	return tunnel.HandleTunnel(*clientId, tunnelList, protocols.ProductionProtocolImpl{}, nil, stream)
 }
 ```

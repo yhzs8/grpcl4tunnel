@@ -31,7 +31,7 @@ func runTunnelChat(client pbtunnel.TunnelServiceClient, tunnelList []*pbtunnel.T
 	if err != nil {
 		return err
 	}
-	return tunnel.HandleTunnel(*clientId, tunnelList, protocols.ProductionProtocolImpl{}, false, nil, stream)
+	return tunnel.HandleTunnel(*clientId, tunnelList, protocols.ProductionProtocolImpl{}, nil, stream)
 }
 
 func main() {
