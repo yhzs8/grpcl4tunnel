@@ -66,7 +66,7 @@ go run client/client.go --addr=<server IP>:50051
 ```
 ## Embed the tunnel implementation in your own gRPC server/client:
 ### server side:
-Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (must be server initiated tunnels), `protocols.ProductionProtocolImpl{}`, `isServer=true`, `serverStream` and `clientStream=nil`
+Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (must be server initiated tunnels), `protocols.ProductionProtocolImpl{}`, `serverStream` and `clientStream=nil`
 ```go
 import (
 ...
@@ -86,7 +86,7 @@ func (s *tunnelServer) TunnelChat(stream pbtunnel.TunnelService_TunnelChatServer
 }
 ```
 ### client side:
-Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (retreived from `GetClientInitiatedTunnels()`), `protocols.ProductionProtocolImpl{}`, `isServer=false`, `serverStream=nil` and `clientStream`
+Invoke `tunnel.HandleTunnel` with `clientId`, `tunnelList` (retreived from `GetClientInitiatedTunnels()`), `protocols.ProductionProtocolImpl{}`, `serverStream=nil` and `clientStream`
 ```go
 import (
 ...
