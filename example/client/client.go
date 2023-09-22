@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/examples/data"
 	"google.golang.org/grpc/metadata"
 	"log"
 )
@@ -39,7 +38,7 @@ func main() {
 	var opts []grpc.DialOption
 	if *tls {
 		if *caFile == "" {
-			*caFile = data.Path("x509/ca_cert.pem")
+			log.Fatalf("CA File is not defined")
 		}
 		creds, err := credentials.NewClientTLSFromFile(*caFile, *serverHostOverride)
 		if err != nil {

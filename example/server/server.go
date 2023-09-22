@@ -10,7 +10,6 @@ import (
 	"github.com/yhzs8/grpcl4tunnel/tunnel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/examples/data"
 	"google.golang.org/grpc/metadata"
 	"log"
 	"net"
@@ -140,10 +139,10 @@ func main() {
 	var opts []grpc.ServerOption
 	if *tls {
 		if *certFile == "" {
-			*certFile = data.Path("x509/server_cert.pem")
+			log.Fatalf("cert file is not defined")
 		}
 		if *keyFile == "" {
-			*keyFile = data.Path("x509/server_key.pem")
+			log.Fatalf("key file is not defined")
 		}
 		creds, err := credentials.NewServerTLSFromFile(*certFile, *keyFile)
 		if err != nil {
