@@ -29,7 +29,6 @@ The `tunnel` object defines properties of a tunnel instance, it contains the fol
 	RemotePort        int32    `protobuf:"varint,4,opt,name=RemotePort,proto3" json:"RemotePort,omitempty"`
 	LocalHost         string   `protobuf:"bytes,5,opt,name=LocalHost,proto3" json:"LocalHost,omitempty"`
 	LocalPort         int32    `protobuf:"varint,6,opt,name=LocalPort,proto3" json:"LocalPort,omitempty"`
-}
 ```
 * `IsServerInitiated` is the server-initiated or client-initiated tunnel traffic
 * `Protocol` can be `tcp`, `udp` or `sctp`
